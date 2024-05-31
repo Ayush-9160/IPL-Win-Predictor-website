@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPL Win Predictor</title>
+    <style>
+        .title{
+            text-align: center;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .team-selection {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+        }
+        .team-option {
+            text-align: center;
+            margin: 10px;
+        }
+        .team-option img {
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+        }
+        .selected-team-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 50px;
+        }
+        .team-info {
+            display: flex;
+            align-items: center;
+        }
+        .team-info img {
+            width: 100px;
+            height: 100px;
+            margin-right: 10px;
+        }
+        
+
+        .info {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Change to 2 columns */
+    gap: 20px;
+    width: 80%; /* Adjust the width of the container as needed */
+    margin: 0 auto; /* Center the container */
+}
+
+.info label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    text-align: center; /* Center the label text */
+}
+
+.info input, .info select {
+    width: 90%; /* Take full width of the container cell */
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.info input:focus, .info select:focus {
+    border-color: #007BFF;
+    outline: none;
+}
+
+button {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   background-color: #f3f6f9;
+   border-color: aqua;
+   color: rgb(0, 0, 0);
+   padding: 10px 20px;
+   font-size: 16px;
+   border: none;
+   border-radius: 5px;
+   cursor: pointer;
+   margin: auto; /* Center the button both horizontally and vertically */
+   margin-top: 20px; /* Add some space on top of the button */
+}
+
+button:hover {
+   background-color: #000000;
+   color:white;
+}
+
+
+        .result-bar {
+            width: 100%;
+            height: 50px;
+            margin-top: 20px;
+            display: flex;
+            position: relative;
+        }
+        .result-bar .win, .result-bar .loss {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            position: absolute;
+        }
+        .win {
+            background-color: green;
+            left: 0;
+        }
+        .loss {
+            background-color: red;
+            right: 0;
+        }
+        .result-text {
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+    </style>
+</head>
+<body>
+    <h1 class="title">IPL Win Predictor</h1>
+    <form id="predict-form">
+        <div class="selected-team-container">
+            <div class="team-info">
+                <div id="batting-team-display" onclick="showTeams('batting')">
+                    <img src="static/images/placeholder.png" alt="Select batting team" id="batting-team-img">
+                </div>
+                <input type="hidden" name="batting_team" id="batting_team">
+                <br>
+                <span id="batting-team-name">Batting Team</span>
+            </div>
+            <div class="team-info">
+                <div id="bowling-team-display" onclick="showTeams('bowling')">
+                    <img src="static/images/placeholder1.png" alt="Select bowling team" id="bowling-team-img">
+                </div>
+                <input type="hidden" name="bowling_team" id="bowling_team">
+                <br>
+                <span id="bowling-team-name">Bowling Team</span>
+            </div>
+        </div>
+
+        <div class="team-selection" id="team-selection" style="display: none;">
+            {% for team in teams %}
+                <div class="team-option">
+                    <img src="{{ url_for('static', filename='images/teams/' + team.replace(' ', '_') + '.png') }}" alt="{{ team }}" onclick="selectTeam('{{ team }}', this)">
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="info">
+    <div>
+        <label for="city">Select host city:</label>
+        <select name="city" id="city">
+            {% for city in cities %}
+                <option value="{{ city }}">{{ city }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="target">Target:</label>
+        <input type="number" name="target" id="target" required>
+    </div>
+    <div>
+        <label for="score">Score:</label>
+        <input type="number" name="score" id="score" required>
+    </div>
+    <div>
+        <label for="wickets">Wickets out:</label>
+        <input type="number" name="wickets" id="wickets" required>
+    </div>
+    <div>
+        <label for="overs">Overs completed:</label>
+        <input type="number" step="0.1" name="overs" id="overs" required>
+    </div>
+</div>
+<button class="btn" type="submit">Predict Probability</button>
+
+    </form>
+
+    <div class="result-bar" id="result-bar" style="display: none;">
+        <div class="win" id="win-bar"></div>
+        <div class="loss" id="loss-bar"></div>
+    </div>
+    <div class="result-text" id="result-text" style="display: none;"></div>
+
+    <script>
+        let currentSelection = '';
+
+        function showTeams(type) {
+            currentSelection = type;
+            document.getElementById('team-selection').style.display = 'flex';
+        }
+
+        function selectTeam(team, imgElement) {
+            const teamImgSrc = imgElement.src;
+            if (currentSelection === 'batting') {
+                document.getElementById('batting-team-img').src = teamImgSrc;
+                document.getElementById('batting_team').value = team;
+                document.getElementById('batting-team-name').textContent = team;
+            } else if (currentSelection === 'bowling') {
+                document.getElementById('bowling-team-img').src = teamImgSrc;
+                document.getElementById('bowling_team').value = team;
+                document.getElementById('bowling-team-name').textContent = team;
+            }
+            document.getElementById('team-selection').style.display = 'none';
+        }
+
+        document.getElementById('predict-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const win = data.win;
+                const loss = data.loss;
+                const battingTeam = document.getElementById('batting_team').value;
+                const bowlingTeam = document.getElementById('bowling_team').value;
+
+                document.getElementById('win-bar').style.width = win + '%';
+                document.getElementById('loss-bar').style.width = loss + '%';
+                document.getElementById('win-bar').textContent = battingTeam + ' ' + win + '%';
+                document.getElementById('loss-bar').textContent = bowlingTeam + ' ' + loss + '%';
+
+                document.getElementById('result-bar').style.display = 'flex';
+                document.getElementById('result-text').style.display = 'block';
+                document.getElementById('result-text').textContent = battingTeam + ' ' + win + '% - ' + bowlingTeam + ' ' + loss + '%';
+            });
+        });
+    </script>
+</body>
+</html>
